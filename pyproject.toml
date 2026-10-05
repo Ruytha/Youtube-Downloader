@@ -1,5 +1,5 @@
 [project]
-name = "yt-downloader"
+name = "youtube-downloader"
 version = "1.0.0"
 description = "Desktop app for saving YouTube videos and audio, built on yt-dlp."
 readme = "README.md"

@@ -1,5 +1,7 @@
 # YT Downloader
 
+[![CI](https://github.com/Ruytha/youtube-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/Ruytha/youtube-downloader/actions/workflows/ci.yml)
+
 A Windows desktop app for saving YouTube videos and audio, built on [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 Paste a link, pick a format, press Download.
 
@@ -32,8 +34,8 @@ Paste a link, pick a format, press Download.
 ## Install and run
 
 ```
-git clone https://github.com/<your-username>/yt-downloader.git
-cd yt-downloader
+git clone https://github.com/Ruytha/youtube-downloader.git
+cd youtube-downloader
 pip install -r requirements.txt
 python web_app.py
 ```
@@ -48,7 +50,7 @@ Or double-click `run.bat`. The app opens in its own window. If the window can't 
 
 ## Download the .exe
 
-Prebuilt versions are on the [Releases](../../releases) page. Unzip and run `YT Downloader.exe`. You still need FFmpeg installed, or `ffmpeg.exe` and `ffprobe.exe` placed next to the .exe.
+Prebuilt versions are on the [Releases](https://github.com/Ruytha/youtube-downloader/releases) page. Unzip and run `YT Downloader.exe`. You still need FFmpeg installed, or `ffmpeg.exe` and `ffprobe.exe` placed next to the .exe.
 
 To build it yourself, run `build.bat`. It creates `dist\YT Downloader.exe` and copies your FFmpeg next to it.
 
