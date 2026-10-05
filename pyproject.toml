@@ -1,0 +1,21 @@
+[project]
+name = "yt-downloader"
+version = "1.0.0"
+description = "Desktop app for saving YouTube videos and audio, built on yt-dlp."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["yt-dlp", "mutagen", "pywebview"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",   # long regexes and option strings read better unwrapped
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

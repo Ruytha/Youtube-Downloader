@@ -1,0 +1,56 @@
+name: Release
+
+# Push a tag like v1.0.0 to build the Windows .exe and attach it to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Check tag matches APP_VERSION
+        shell: bash
+        run: |
+          app_version=$(python -c "import re;print(re.search(r'APP_VERSION = \"(.+?)\"', open('web_app.py', encoding='utf-8').read()).group(1))")
+          if [ "v$app_version" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match APP_VERSION $app_version in web_app.py"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Test
+        run: python -m pytest -q
+
+      - name: Build exe
+        run: >
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name "YT Downloader"
+          --add-data "web;web"
+          --collect-all yt_dlp
+          --collect-all webview
+          web_app.py
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item README.md, LICENSE dist/
+          Compress-Archive -Path "dist/*" -DestinationPath "YT-Downloader-${{ github.ref_name }}-windows.zip"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: YT-Downloader-${{ github.ref_name }}-windows.zip
+          generate_release_notes: true

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YT Downloader</title>
+  <script>
+    // Apply the saved theme before first paint so there is no flash.
+    try {
+      const t = localStorage.getItem("ytdl-theme");
+      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="wordmark">YT Downloader</h1>
+      <div class="topbar-right">
+        <span id="version" class="version"></span>
+        <div class="theme" role="radiogroup" aria-label="Theme">
+          <button type="button" role="radio" data-theme="system" aria-checked="true">Auto</button>
+          <button type="button" role="radio" data-theme="light" aria-checked="false">Light</button>
+          <button type="button" role="radio" data-theme="dark" aria-checked="false">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="update-banner" class="notice hidden" role="status">
+      <p id="update-text"></p>
+      <div class="notice-actions">
+        <button type="button" id="update-btn" class="btn btn-secondary">Update yt-dlp</button>
+        <button type="button" id="update-dismiss" class="btn btn-quiet">Not now</button>
+      </div>
+    </div>
+
+    <main>
+      <form id="form" class="compose" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="url" class="label">Link</label>
+          <div class="url-row">
+            <textarea id="url" rows="1" spellcheck="false" aria-describedby="url-help"
+              placeholder="https://www.youtube.com/watch?v=..."></textarea>
+            <button type="button" id="paste" class="btn btn-secondary">Paste</button>
+          </div>
+          <p id="url-help" class="help">A video, a playlist, a channel, or several links on separate lines.</p>
+        </div>
+
+        <!-- loading skeleton, shaped like the preview it replaces -->
+        <div id="skeleton" class="preview skeleton hidden" aria-hidden="true">
+          <div class="thumb"></div>
+          <div class="sk-lines"><span></span><span></span></div>
+        </div>
+
+        <div id="preview" class="preview hidden">
+          <img id="thumb" class="thumb" alt="">
+          <div class="preview-text">
+            <p id="p-title" class="preview-title"></p>
+            <p id="p-sub" class="meta"></p>
+          </div>
+        </div>
+
+        <div id="picker" class="picker hidden">
+          <div class="picker-head">
+            <div class="preview-text">
+              <p id="pk-title" class="preview-title"></p>
+              <p id="pk-sub" class="meta"></p>
+            </div>
+            <div class="picker-actions">
+              <button type="button" class="btn btn-quiet" id="pk-all">Select all</button>
+              <button type="button" class="btn btn-quiet" id="pk-none">Clear</button>
+            </div>
+          </div>
+          <label for="pk-filter" class="sr-only">Filter videos</label>
+          <input id="pk-filter" type="search" class="pk-filter" placeholder="Filter by title">
+          <ul id="pk-list" class="pk-list"></ul>
+        </div>
+
+        <p id="preview-msg" class="inline-msg hidden" role="status"></p>
+
+        <div class="settings">
+          <div class="field">
+            <span class="label" id="kind-label">Save as</span>
+            <div class="segmented" role="radiogroup" aria-labelledby="kind-label">
+              <input type="radio" name="kind" id="kind-video" value="video" checked>
+              <label for="kind-video">Video</label>
+              <input type="radio" name="kind" id="kind-audio" value="audio">
+              <label for="kind-audio">Audio only</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="container" class="label">Format</label>
+            <select id="container"></select>
+          </div>
+          <div class="field" id="quality-field">
+            <label for="quality" class="label">Max quality</label>
+            <select id="quality">
+              <option value="best">Best available</option>
+              <option value="2160">2160p (4K)</option>
+              <option value="1440">1440p</option>
+              <option value="1080">1080p</option>
+              <option value="720">720p</option>
+              <option value="480">480p</option>
+              <option value="360">360p</option>
+            </select>
+          </div>
+          <div class="field hidden" id="bitrate-field">
+            <label for="bitrate" class="label">Bitrate</label>
+            <select id="bitrate">
+              <option value="320">320 kbps</option>
+              <option value="256">256 kbps</option>
+              <option value="192" selected>192 kbps</option>
+              <option value="128">128 kbps</option>
+            </select>
+          </div>
+          <div class="field field-wide">
+            <label for="outdir" class="label">Save to</label>
+            <div class="url-row">
+              <input id="outdir" type="text" spellcheck="false">
+              <button type="button" id="browse" class="btn btn-secondary">Browse</button>
+            </div>
+          </div>
+        </div>
+
+        <details id="more" class="more">
+          <summary><span>More options</span><span id="more-summary" class="meta"></span></summary>
+
+          <div class="more-body">
+            <fieldset class="opt" id="clip-opt">
+              <legend class="label">Clip</legend>
+              <div class="clip-row">
+                <div class="field">
+                  <label for="clip-start" class="sublabel">Start</label>
+                  <input id="clip-start" type="text" inputmode="numeric" placeholder="0:00" aria-describedby="clip-help">
+                </div>
+                <div class="field">
+                  <label for="clip-end" class="sublabel">End</label>
+                  <input id="clip-end" type="text" inputmode="numeric" placeholder="end" aria-describedby="clip-help">
+                </div>
+              </div>
+              <div id="clip-track" class="track clip-track hidden" aria-hidden="true"><div class="track-fill"></div></div>
+              <p id="clip-help" class="help">Leave both empty to save the whole video. Only works for a single video.</p>
+            </fieldset>
+
+            <fieldset class="opt" id="subs-opt">
+              <legend class="label">Subtitles</legend>
+              <div class="clip-row">
+                <div class="field">
+                  <label for="subs" class="sublabel">Mode</label>
+                  <select id="subs">
+                    <option value="off">Off</option>
+                    <option value="embed">Embed in video</option>
+                    <option value="files">Separate .srt files</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="sub-langs" class="sublabel">Languages</label>
+                  <input id="sub-langs" type="text" value="en" aria-describedby="subs-help">
+                </div>
+              </div>
+              <p id="subs-help" class="help">Comma-separated codes, like en, es. Use en.* to include en-US and en-GB.</p>
+            </fieldset>
+
+            <div class="opt checks">
+              <label class="check" id="tags-opt">
+                <input id="smart-tags" type="checkbox" checked>
+                <span>
+                  <span class="check-title">Clean up music tags</span>
+                  <span class="help">"Artist - Song (Official Video)" is tagged as artist "Artist", title "Song". Audio only.</span>
+                </span>
+              </label>
+              <label class="check">
+                <input id="notify" type="checkbox" checked>
+                <span>
+                  <span class="check-title">Notify me when downloads finish</span>
+                  <span class="help">One Windows notification once the list is done.</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <div class="submit-row">
+          <p id="go-summary" class="meta"></p>
+          <button type="submit" id="go" class="btn btn-primary">Download</button>
+        </div>
+      </form>
+
+      <section class="lists" aria-label="Downloads">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tab-btn-active" class="tab" aria-selected="true" aria-controls="tab-active" data-tab="active">
+            Downloads <span id="active-count" class="count hidden"></span>
+          </button>
+          <button type="button" role="tab" id="tab-btn-history" class="tab" aria-selected="false" aria-controls="tab-history" data-tab="history" tabindex="-1">History</button>
+        </div>
+
+        <div id="tab-active" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-active">
+          <div class="list-tools">
+            <button type="button" id="open" class="btn btn-quiet">Open save folder</button>
+            <div class="list-tools-right">
+              <button type="button" id="cancel-all" class="btn btn-quiet hidden">Cancel all</button>
+              <button type="button" id="clear" class="btn btn-quiet hidden">Clear finished</button>
+            </div>
+          </div>
+          <ul id="queue" class="rows"></ul>
+          <div id="empty" class="empty">
+            <p class="empty-title">No downloads running</p>
+            <p class="help">Paste a link above and press Download. Progress shows up here.</p>
+          </div>
+        </div>
+
+        <div id="tab-history" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-history">
+          <div class="list-tools">
+            <label for="hist-search" class="sr-only">Search history</label>
+            <input id="hist-search" type="search" class="pk-filter" placeholder="Search by title">
+            <button type="button" id="hist-clear" class="btn btn-quiet">Clear history</button>
+          </div>
+          <ul id="history" class="rows"></ul>
+          <div id="hist-empty" class="empty">
+            <p class="empty-title">Nothing here yet</p>
+            <p class="help">Finished downloads are kept here, so you can find the files again later.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <template id="job-tpl">
+    <li class="row">
+      <div class="thumb"></div>
+      <div class="row-body">
+        <div class="row-top">
+          <p class="row-title"></p>
+          <span class="tag"></span>
+        </div>
+        <div class="track"><div class="track-fill"></div></div>
+        <div class="row-bottom">
+          <p class="row-status"></p>
+          <button type="button" class="btn btn-quiet row-action"></button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <template id="hist-tpl">
+    <li class="row">
+      <div class="thumb"></div>
+      <div class="row-body">
+        <div class="row-top">
+          <p class="row-title"></p>
+          <span class="tag"></span>
+        </div>
+        <p class="row-status hist-meta"></p>
+        <div class="row-actions">
+          <button type="button" class="btn btn-quiet h-show">Show file</button>
+          <button type="button" class="btn btn-quiet h-again">Download again</button>
+          <button type="button" class="btn btn-quiet h-remove">Remove</button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
